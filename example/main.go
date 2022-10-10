@@ -24,8 +24,8 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/jaeger"
 	"go.opentelemetry.io/otel/exporters/prometheus"
-	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
 	"go.opentelemetry.io/otel/metric/global"
 	controller "go.opentelemetry.io/otel/sdk/metric/controller/basic"
 	"go.opentelemetry.io/otel/sdk/metric/export/aggregation"
@@ -42,10 +42,13 @@ const instrumentationName = "github.com/XSAM/otelsql/example"
 
 var serviceName = semconv.ServiceNameKey.String("otesql-example")
 
-var mysqlDSN = "root:otel_password@tcp(mysql)/db?parseTime=true"
+var mysqlDSN = "root:password@tcp(localhost:9091)/alert?charset=utf8&parseTime=True&loc=Local"
 
 func initTracer() {
-	exporter, err := stdouttrace.New(stdouttrace.WithPrettyPrint())
+	//初始化traceprovide
+	//exporter, err := stdouttrace.New(stdouttrace.WithPrettyPrint())
+	exporter, err := jaeger.New(jaeger.WithCollectorEndpoint(jaeger.WithEndpoint("http://localhost:9092/api/traces")))
+
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -88,7 +91,7 @@ func initMeter() {
 
 func main() {
 	initTracer()
-	initMeter()
+	//initMeter()
 
 	// Connect to database
 	db, err := otelsql.Open("mysql", mysqlDSN, otelsql.WithAttributes(
@@ -99,9 +102,9 @@ func main() {
 	}
 	defer db.Close()
 
-	err = otelsql.RegisterDBStatsMetrics(db, otelsql.WithAttributes(
-		semconv.DBSystemMySQL,
-	))
+	//err = otelsql.RegisterDBStatsMetrics(db, otelsql.WithAttributes(
+	//	semconv.DBSystemMySQL,
+	//))
 	if err != nil {
 		panic(err)
 	}
